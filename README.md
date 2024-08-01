@@ -18,3 +18,5 @@
 - Database (MySQL)
 
 ### [Demo Sites](https://terbawasuasana.com/burger/)
+### [Dokumentasi DOC](https://github.com/cssdnnf/Web-Programing/blob/master/Dokumentasi.docx)
+### [Dokumentasi PDF](https://github.com/cssdnnf/Web-Programing/blob/master/Dokumentasi.pdf)
