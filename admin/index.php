@@ -2,7 +2,7 @@
     include('session.php');
     include('../koneksi.php');
     
-    $query = mysqli_query($db, "SELECT name, level FROM users WHERE username = '$login_session'");
+    $query = mysqli_query($db, "SELECT id, name, level FROM users WHERE username = '$login_session'");
     $users = mysqli_fetch_assoc($query); 
 
     //var_dump($users);
@@ -64,6 +64,12 @@
                     <i class="fas fa-fw fa-user-alt"></i>
                     <span>User List</span></a>
             </li>
+
+            <li class="nav-item active">
+                <a class="nav-link" href="../index.php">
+                    <i class="fas fa-fw fa-star-half-alt"></i>
+                    <span>Halaman Utama</span></a>
+            </li>
             <hr class="sidebar-divider d-none d-md-block">
             <div class="text-center d-none d-md-inline">
                 <button class="rounded-circle border-0" id="sidebarToggle"></button>
@@ -85,6 +91,16 @@
                 <a class="nav-link" href="index.php">
                     <i class="fas fa-fw fa-tachometer-alt"></i>
                     <span>Dashboard</span></a>
+            </li>
+            <li class="nav-item active">
+                <a class="nav-link" href="index.php?halaman=orders">
+                    <i class="fas fa-fw fa-tachometer-alt"></i>
+                    <span>Orders</span></a>
+            </li>
+            <li class="nav-item active">
+                <a class="nav-link" href="../index.php">
+                    <i class="fas fa-fw fa-star-half-alt"></i>
+                    <span>Halaman Utama</span></a>
             </li>
             <hr class="sidebar-divider d-none d-md-block">
             <div class="text-center d-none d-md-inline">
@@ -154,6 +170,9 @@
                     switch ($halaman){
                         case 'menu':
                             include './menu.php';
+                            break;
+                        case 'orders':
+                            include './orders.php';
                             break;
                         case 'user':
                             include './user.php';

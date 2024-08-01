@@ -3,14 +3,13 @@ include('koneksi.php');
 $query = mysqli_query($db, 'SELECT title_web FROM setting');
 $title = mysqli_fetch_assoc($query); 
 
-//echo $row['title_web'];
-
 session_start();
 error_reporting(0);
+
 ?>
 
 <?php
-error_reporting(0);
+//error_reporting(0);
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
@@ -75,7 +74,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
         <!-- Site Title -->
-        <!--<title>Food and Beverage | F & B - Web Programming</title>-->
 		<title><?php echo $title['title_web'];?></title>
 
         <!-- Icon Website -->
@@ -94,6 +92,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 		<!-- Leaflet CSS -->
 		<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
 
     </head>
     <body>
@@ -141,10 +142,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                     </ul>
                                 </li>
 
-                                <!-- Menu Blog -->
-                                <li><a href="./blog.php">Blog</a>
-                                </li>
-
                                 <!-- Menu Contact -->
                                 <li class="submenu-right"><a href="#">Contacts</a>
                                     <ul>
@@ -152,6 +149,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                         <li><a href="#Contact">Contact US</a></li>
                                     </ul>
                                 </li>
+
+								<?php 
+								$login_session = $_SESSION['login_user'];
+								$query2 = mysqli_query($db, "SELECT id, level FROM users WHERE username = '$login_session'");
+								$users = mysqli_fetch_assoc($query2); 
+								if($users['level'] == "user"){?>
+								<li class="menu-cart">
+									<a href="./admin/index.php?halaman=orders"><i class="fa fa-shopping-cart"></i></a>
+								</li>
+								<?php } ?>
+
                             </ul>
                         </nav>
                     </div>
@@ -180,7 +188,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 								if ($_SESSION['login_user'] ) {
 									echo '<a href="./admin/index.php" class="btn btn-lg btn-yellow tra-white-hover">Dashboard</a>';
 								} else {
-									//echo '<a href="#Menu" class="btn btn-lg btn-yellow tra-white-hover" data-bs-toggle="modal" data-bs-target="#LoginModalCenter">Login</a>';
 									echo '<a href="./admin/login.php" class="btn btn-lg btn-yellow tra-white-hover">Login</a>';
 								}
 								?>
@@ -228,13 +235,50 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 				 	<!-- TABS CONTENT -->
 				 	<div id="tabs-content">
-				 		<!-- TAB-1 CONTENT -->
+						<?php
+						// Handle Add to Cart logic
+						if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_to_cart'])) {
+							$menu_id = $_POST['menu_id']; 
+							$user_id = $users['id'];
+
+							// Fetch item price
+							$price_query = "SELECT harga FROM menu WHERE id = '$menu_id'";
+							$price_result = mysqli_query($db, $price_query);
+							$price_row = mysqli_fetch_assoc($price_result);
+							$item_price = $price_row['harga'];
+
+							// Check if item already in orders
+							$check_query = "SELECT * FROM orders WHERE menu_id = '$menu_id' AND user_id = '$user_id'";
+							$result = mysqli_query($db, $check_query);
+
+							if (mysqli_num_rows($result) > 0) {
+								// Update existing order
+								$row = mysqli_fetch_assoc($result);
+								$current_quantity = $row['t_barang'];
+								$new_quantity = $current_quantity + 1;
+								$total_price = $item_price * $new_quantity;
+								$formatted_total_price = number_format($total_price, 3, '.', '');
+								$update_query = "UPDATE orders SET t_barang = '$new_quantity', t_harga = '$formatted_total_price' WHERE menu_id = '$menu_id' AND user_id = '$user_id'";
+								mysqli_query($db, $update_query);
+							} else {
+								// Insert new order
+								$total_price = $item_price; 
+								$formatted_total_price = number_format($total_price, 3, '.', '');
+								$add_query = "INSERT INTO orders (t_barang, t_harga, menu_id, user_id) VALUES ('1', '$formatted_total_price', '$menu_id', '$user_id')";
+								mysqli_query($db, $add_query);
+							}
+						}
+						?>
+						<!-- TAB-1 CONTENT -->
 						<div id="tab-1" class="tab-content current">
 							<div class="row">
 								<?php
-									$query = mysqli_query($db, "SELECT id, judul, deskripsi, harga, gambar FROM menu WHERE category = 'burgers'");
-									if (mysqli_num_rows($query) > 0) {
-										while ($menu = mysqli_fetch_assoc($query)) {
+								// Query to fetch menu items
+								$query = mysqli_query($db, "SELECT id, judul, deskripsi, harga, gambar FROM menu WHERE category = 'burgers'");
+								if (mysqli_num_rows($query) > 0) {
+									while ($menu = mysqli_fetch_assoc($query)) {
+										$menu_id = $menu['id'];
+										$user_id = $users['id'];
 								?>
 								<!-- MENU ITEM -->
 								<div class="col-sm-6 col-lg-3">
@@ -247,20 +291,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 											<div class="menu-7-price bg-coffee">
 												<h5 class="h5-xs yellow-color">Rp. <?php echo $menu['harga'];?>,00</h5>
 											</div>
-											<!-- Rating (Assumed static for this example) -->
-											<div class="item-rating">
-												<div class="stars-rating stars-lg">
-													<i class="fas fa-star"></i>
-													<i class="fas fa-star"></i>
-													<i class="fas fa-star"></i>
-													<i class="fas fa-star"></i>
-													<i class="fas fa-star-half-alt"></i>
-												</div>
-											</div>
-											<!-- Like Icon (Assumed static for this example) -->
-											<div class="like-ico ico-20">
-												<a href="#"><span class="flaticon-heart"></span></a>
-											</div>
 										</div>
 										<!-- TEXT -->
 										<div class="menu-7-txt rel">
@@ -269,28 +299,40 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 											<!-- Description -->
 											<p class="grey-color"><?php echo $menu['deskripsi'];?></p>
 											<!-- Button (Assumed static for this example) -->
-											<a href="#AddCart" class="btn btn-sm btn-tra-grey yellow-hover">
+											<?php if ($users['level'] == "user") { ?>
+											<form action="" method="post" style="display:inline;">
+												<input type="hidden" name="menu_id" value="<?php echo $menu_id; ?>">
+												<button type="submit" name="add_to_cart" class="btn btn-sm btn-tra-grey yellow-hover">
+													<span class="flaticon-shopping-bag"></span> Add to Cart
+												</button>
+											</form>
+											<?php } else { ?>
+											<a href="#AddCart" class="btn btn-sm btn-tra-grey yellow-hover" onclick="return confirm('Anda harus login terlebih dahulu sebagai user!');">
 												<span class="flaticon-shopping-bag"></span> Add to Cart
 											</a>
+											<?php } ?>
 										</div>
 									</div>
 								</div> <!-- END MENU ITEM -->
 								<?php
-										} // End while loop
-									} else {
-										echo "No menu items found.";
+									} // End while loop
+								} else {
+									//echo "No menu items found.";
 								}
 								?>
-							</div>  <!-- End row -->	
-						</div>	<!-- END TAB-1 CONTENT -->
+							</div>  <!-- End row -->    
+						</div>  <!-- END TAB-1 CONTENT -->
 
 						<!-- TAB-2 CONTENT -->
 						<div id="tab-2" class="tab-content">
 							<div class="row">
 								<?php
-									$query = mysqli_query($db, "SELECT id, judul, deskripsi, harga, gambar FROM menu WHERE category = 'sides'");
-									if (mysqli_num_rows($query) > 0) {
-										while ($menu = mysqli_fetch_assoc($query)) {
+								// Query to fetch menu items
+								$query = mysqli_query($db, "SELECT id, judul, deskripsi, harga, gambar FROM menu WHERE category = 'sides'");
+								if (mysqli_num_rows($query) > 0) {
+									while ($menu = mysqli_fetch_assoc($query)) {
+										$menu_id = $menu['id'];
+										$user_id = $users['id'];
 								?>
 								<!-- MENU ITEM -->
 								<div class="col-sm-6 col-lg-3">
@@ -303,20 +345,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 											<div class="menu-7-price bg-coffee">
 												<h5 class="h5-xs yellow-color">Rp. <?php echo $menu['harga'];?>,00</h5>
 											</div>
-											<!-- Rating (Assumed static for this example) -->
-											<div class="item-rating">
-												<div class="stars-rating stars-lg">
-													<i class="fas fa-star"></i>
-													<i class="fas fa-star"></i>
-													<i class="fas fa-star"></i>
-													<i class="fas fa-star"></i>
-													<i class="fas fa-star-half-alt"></i>
-												</div>
-											</div>
-											<!-- Like Icon (Assumed static for this example) -->
-											<div class="like-ico ico-20">
-												<a href="#"><span class="flaticon-heart"></span></a>
-											</div>
 										</div>
 										<!-- TEXT -->
 										<div class="menu-7-txt rel">
@@ -325,28 +353,40 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 											<!-- Description -->
 											<p class="grey-color"><?php echo $menu['deskripsi'];?></p>
 											<!-- Button (Assumed static for this example) -->
-											<a href="#AddCart" class="btn btn-sm btn-tra-grey yellow-hover">
+											<?php if ($users['level'] == "user") { ?>
+											<form action="" method="post" style="display:inline;">
+												<input type="hidden" name="menu_id" value="<?php echo $menu_id; ?>">
+												<button type="submit" name="add_to_cart" class="btn btn-sm btn-tra-grey yellow-hover">
+													<span class="flaticon-shopping-bag"></span> Add to Cart
+												</button>
+											</form>
+											<?php } else { ?>
+											<a href="#AddCart" class="btn btn-sm btn-tra-grey yellow-hover" onclick="return confirm('Anda harus login terlebih dahulu sebagai user!')">
 												<span class="flaticon-shopping-bag"></span> Add to Cart
 											</a>
+											<?php } ?>
 										</div>
 									</div>
 								</div> <!-- END MENU ITEM -->
 								<?php
-										} // End while loop
-									} else {
-										echo "No menu items found.";
+									} // End while loop
+								} else {
+									//echo "No menu items found.";
 								}
 								?>
-							</div>  <!-- End row -->	
+							</div>  <!-- End row -->    
 						</div>	<!-- END TAB-2 CONTENT -->
 
 						<!-- TAB-3 CONTENT -->
 						<div id="tab-3" class="tab-content">
 							<div class="row">
 								<?php
-									$query = mysqli_query($db, "SELECT id, judul, deskripsi, harga, gambar FROM menu WHERE category = 'drinks'");
-									if (mysqli_num_rows($query) > 0) {
-										while ($menu = mysqli_fetch_assoc($query)) {
+								// Query to fetch menu items
+								$query = mysqli_query($db, "SELECT id, judul, deskripsi, harga, gambar FROM menu WHERE category = 'drinks'");
+								if (mysqli_num_rows($query) > 0) {
+									while ($menu = mysqli_fetch_assoc($query)) {
+										$menu_id = $menu['id'];
+										$user_id = $users['id'];
 								?>
 								<!-- MENU ITEM -->
 								<div class="col-sm-6 col-lg-3">
@@ -359,20 +399,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 											<div class="menu-7-price bg-coffee">
 												<h5 class="h5-xs yellow-color">Rp. <?php echo $menu['harga'];?>,00</h5>
 											</div>
-											<!-- Rating (Assumed static for this example) -->
-											<div class="item-rating">
-												<div class="stars-rating stars-lg">
-													<i class="fas fa-star"></i>
-													<i class="fas fa-star"></i>
-													<i class="fas fa-star"></i>
-													<i class="fas fa-star"></i>
-													<i class="fas fa-star-half-alt"></i>
-												</div>
-											</div>
-											<!-- Like Icon (Assumed static for this example) -->
-											<div class="like-ico ico-20">
-												<a href="#"><span class="flaticon-heart"></span></a>
-											</div>
 										</div>
 										<!-- TEXT -->
 										<div class="menu-7-txt rel">
@@ -381,28 +407,40 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 											<!-- Description -->
 											<p class="grey-color"><?php echo $menu['deskripsi'];?></p>
 											<!-- Button (Assumed static for this example) -->
-											<a href="#AddCart" class="btn btn-sm btn-tra-grey yellow-hover">
+											<?php if ($users['level'] == "user") { ?>
+											<form action="" method="post" style="display:inline;">
+												<input type="hidden" name="menu_id" value="<?php echo $menu_id; ?>">
+												<button type="submit" name="add_to_cart" class="btn btn-sm btn-tra-grey yellow-hover">
+													<span class="flaticon-shopping-bag"></span> Add to Cart
+												</button>
+											</form>
+											<?php } else { ?>
+											<a href="#AddCart" class="btn btn-sm btn-tra-grey yellow-hover" onclick="return confirm('Anda harus login terlebih dahulu sebagai user!')">
 												<span class="flaticon-shopping-bag"></span> Add to Cart
 											</a>
+											<?php } ?>
 										</div>
 									</div>
 								</div> <!-- END MENU ITEM -->
 								<?php
-										} // End while loop
-									} else {
-										echo "No menu items found.";
+									} // End while loop
+								} else {
+									//echo "No menu items found.";
 								}
 								?>
-							</div>  <!-- End row -->	
+							</div>  <!-- End row -->    
 						</div>	<!-- END TAB-3 CONTENT -->
 
 						<!-- TAB-4 CONTENT -->
 						<div id="tab-4" class="tab-content">
 							<div class="row">
 								<?php
-									$query = mysqli_query($db, "SELECT id, judul, deskripsi, harga, gambar FROM menu WHERE category = 'desserts'");
-									if (mysqli_num_rows($query) > 0) {
-										while ($menu = mysqli_fetch_assoc($query)) {
+								// Query to fetch menu items
+								$query = mysqli_query($db, "SELECT id, judul, deskripsi, harga, gambar FROM menu WHERE category = 'desserts'");
+								if (mysqli_num_rows($query) > 0) {
+									while ($menu = mysqli_fetch_assoc($query)) {
+										$menu_id = $menu['id'];
+										$user_id = $users['id'];
 								?>
 								<!-- MENU ITEM -->
 								<div class="col-sm-6 col-lg-3">
@@ -415,20 +453,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 											<div class="menu-7-price bg-coffee">
 												<h5 class="h5-xs yellow-color">Rp. <?php echo $menu['harga'];?>,00</h5>
 											</div>
-											<!-- Rating (Assumed static for this example) -->
-											<div class="item-rating">
-												<div class="stars-rating stars-lg">
-													<i class="fas fa-star"></i>
-													<i class="fas fa-star"></i>
-													<i class="fas fa-star"></i>
-													<i class="fas fa-star"></i>
-													<i class="fas fa-star-half-alt"></i>
-												</div>
-											</div>
-											<!-- Like Icon (Assumed static for this example) -->
-											<div class="like-ico ico-20">
-												<a href="#"><span class="flaticon-heart"></span></a>
-											</div>
 										</div>
 										<!-- TEXT -->
 										<div class="menu-7-txt rel">
@@ -437,21 +461,37 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 											<!-- Description -->
 											<p class="grey-color"><?php echo $menu['deskripsi'];?></p>
 											<!-- Button (Assumed static for this example) -->
-											<a href="#AddCart" class="btn btn-sm btn-tra-grey yellow-hover">
+											<?php if ($users['level'] == "user") { ?>
+											<form action="" method="post" style="display:inline;">
+												<input type="hidden" name="menu_id" value="<?php echo $menu_id; ?>">
+												<button type="submit" name="add_to_cart" class="btn btn-sm btn-tra-grey yellow-hover">
+													<span class="flaticon-shopping-bag"></span> Add to Cart
+												</button>
+											</form>
+											<?php } else { ?>
+											<a href="#AddCart" class="btn btn-sm btn-tra-grey yellow-hover" onclick="return confirm('Anda harus login terlebih dahulu sebagai user!')">
 												<span class="flaticon-shopping-bag"></span> Add to Cart
 											</a>
+											<?php } ?>
 										</div>
 									</div>
 								</div> <!-- END MENU ITEM -->
 								<?php
-										} // End while loop
-									} else {
-										echo "No menu items found.";
+									} // End while loop
+								} else {
+									//echo "No menu items found.";
 								}
 								?>
-							</div>  <!-- End row -->	
+							</div>  <!-- End row -->    
 						</div>	<!-- END TAB-4 CONTENT -->
+
 				 	</div>	<!-- END TABS CONTENT -->
+
+
+
+
+
+					
 				</div>	   <!-- End container -->
 			</section>	<!-- END MENU-8 -->
 
@@ -590,12 +630,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 						<div class="sb-member-description">
 						  <h4 class="sb-mb-10">Cassiel D. Ferdinand</h4>
 						  <p class="sb-text sb-text-sm sb-mb-10">Teknik Informatika</p>
-						  <ul class="sb-social">
-							<li><a href="#."><i class="fab fa-twitter"></i></a></li>
-							<li><a href="#."><i class="fab fa-instagram"></i></a></li>
-							<li><a href="#."><i class="fab fa-facebook-f"></i></a></li>
-							<li><a href="#."><i class="fab fa-youtube"></i></a></li>
-						  </ul>
 						</div>
 					  </div>
 					</div>
@@ -607,12 +641,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 						<div class="sb-member-description">
 						  <h3 class="sb-mb-10">Siti Shalu Prilia</h3>
 						  <p class="sb-text sb-text-sm sb-mb-10">Teknik Informatika</p>
-						  <ul class="sb-social">
-							<li><a href="#."><i class="fab fa-twitter"></i></a></li>
-							<li><a href="#."><i class="fab fa-instagram"></i></a></li>
-							<li><a href="#."><i class="fab fa-facebook-f"></i></a></li>
-							<li><a href="#."><i class="fab fa-youtube"></i></a></li>
-						  </ul>
 						</div>
 					  </div>
 					</div>
@@ -624,12 +652,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 						<div class="sb-member-description">
 						  <h3 class="sb-mb-10">M. Vico Lacosto</h3>
 						  <p class="sb-text sb-text-sm sb-mb-10">Teknik Informatika</p>
-						  <ul class="sb-social">
-							<li><a href="#."><i class="fab fa-twitter"></i></a></li>
-							<li><a href="#."><i class="fab fa-instagram"></i></a></li>
-							<li><a href="#."><i class="fab fa-facebook-f"></i></a></li>
-							<li><a href="#."><i class="fab fa-youtube"></i></a></li>
-						  </ul>
 						</div>
 					  </div>
 					</div>
@@ -695,7 +717,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 					<div class="row">
 					   <!-- Contact FORM -->
 						<div class="col-lg-10 col-xl-8 offset-lg-1 offset-xl-2">
-							<div class="form-holder">'
+							<div class="form-holder">
 							<h2 class="mb-20 text-center">Contact</h2>
 								<!-- Text -->	
 							   <p class="p-xl text-center">
@@ -819,15 +841,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 			attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 			}).addTo(map);
 	
-			// Add markers for Tanri Abeng University and Universitas Prof Dr Moestopo Beragama
 			var tanriAbengMarker = L.marker([-6.22993, 106.76108]).addTo(map)
-			.bindPopup('<b>Tanri Abeng University</b><br>Jl. Swadarma Raya No.58, Ulujami, Kec. Pesanggrahan, Kota Jakarta Selatan, Daerah Khusus Ibukota Jakarta 12250, Indonesia');
+			.bindPopup('<b>Toko Pertama</b><br>Jl. Swadarma Raya No.58, Ulujami, Kec. Pesanggrahan, Kota Jakarta Selatan');
 	
 			var moestopoMarker = L.marker([-6.22887, 106.76120]).addTo(map)
-			.bindPopup('<b>Universitas Prof Dr Moestopo Beragama</b><br>Jl. Swadarma Raya No.54 1, RT.1/RW.2, Ulujami, Kec. Pesanggrahan, Kota Jakarta Selatan, Daerah Khusus Ibukota Jakarta 12250, Indonesia');
+			.bindPopup('<b>Toko Kedua</b><br>Jl. Swadarma Raya No.54 1, RT.1/RW.2, Ulujami, Kec. Pesanggrahan, Kota Jakarta Selatan');
 								
 			var moestopoMarker = L.marker([-6.23145, 106.76053]).addTo(map)
-			.bindPopup('<b>SD NEGERI ULUJAMI 02</b><br>Jl. Swadarma Raya No.3, RT.3/RW.8, Ulujami, Kec. Pesanggrahan, Kota Jakarta Selatan, Daerah Khusus Ibukota Jakarta 12250, Indonesia');
+			.bindPopup('<b>Toko Ketiga</b><br>Jl. Swadarma Raya No.3, RT.3/RW.8, Ulujami, Kec. Pesanggrahan, Kota Jakarta Selatan');
 	
 		</script>
 
